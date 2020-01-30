@@ -16,8 +16,7 @@ import requests
 
 GOOGLE_OAUTH2_AUTH_URL = 'https://accounts.google.com/o/oauth2/auth'
 GOOGLE_OAUTH2_TOKEN_URL = 'https://accounts.google.com/o/oauth2/token'
-GOOGLE_OAUTH2_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo'
-USERINFO_EMAIL_SCOPE = 'https://www.googleapis.com/auth/userinfo.email'
+GOOGLE_OAUTH2_USERINFO_URL = 'https://www.googleapis.com/oauth2/v1/userinfo'
 USERINFO_PROFILE_SCOPE = 'https://www.googleapis.com/auth/userinfo.profile'
 
 
@@ -36,12 +35,18 @@ class GoogleLogin(object):
             self._app = app
             self.init_app(app)
 
-    def init_app(self, app, add_context_processor=True):
+    def init_app(self, app, add_context_processor=True, login_manager=None):
         """
-        Initialize with app configuration
+        Initialize with app configuration. Existing
+        `flask_login.LoginManager` instance can be passed.
         """
 
-        # Check if login manager has been initialized
+        if login_manager:
+            self.login_manager = login_manager
+        else:
+            self.login_manager = LoginManager()
+
+        # Check if login manager has been init
         if not hasattr(app, 'login_manager'):
             self.login_manager.init_app(
                 app,
@@ -136,7 +141,7 @@ class GoogleLogin(object):
             client_id=self.client_id,
             client_secret=self.client_secret,
         )).json()
-        if not token or token.get('error'):
+        if not token or "error" in token:
             abort(400)
         return token
 
@@ -144,7 +149,7 @@ class GoogleLogin(object):
         userinfo = requests.get(GOOGLE_OAUTH2_USERINFO_URL, params=dict(
             access_token=access_token,
         )).json()
-        if not userinfo or userinfo.get('error'):
+        if not userinfo or "error" in userinfo:
             abort(400)
         return userinfo
 
@@ -160,7 +165,7 @@ class GoogleLogin(object):
             client_secret=self.client_secret,
         )).json()
 
-        if not token or token.get('error'):
+        if not token or "error" in token:
             return
 
         return token
